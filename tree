@@ -1,0 +1,63 @@
+#!/bin/bash
+
+show_files=false
+target_dir="."
+
+while getopts ":f" opt; do
+  case $opt in
+    f)
+      show_files=true
+      ;;
+    \?)
+      echo "Использование: $0 [-f] [путь]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+if [ -n "$1" ]; then
+    target_dir="$1"
+fi
+
+if [ ! -d "$target_dir" ]; then
+    echo "Ошибка: '$target_dir' не является директорией."
+    exit 1
+fi
+
+print_tree() {
+    local dir="$1"
+    local prefix="$2"
+
+    local entries=($(ls -p "$dir" | sort))
+    local i=0
+    local total=${#entries[@]}
+
+    for entry in "${entries[@]}"; do
+        ((i++))
+        local is_last=$((i == total))
+        local is_dir=${entry: -1} == "/"
+        local name=${entry%/}
+        local full_path="$dir/$name"
+
+        if [ "$is_dir" = false ] && [ "$show_files" = false ]; then
+            continue
+        fi
+
+        if [ "$is_last" = true ]; then
+            echo -e "$prefix└── $name"
+            new_prefix="$prefix    "
+        else
+            echo -e "$prefix├── $name"
+            new_prefix="$prefix│   "
+        fi
+
+        if [ "$is_dir" = true ]; then
+            print_tree "$full_path" "$new_prefix"
+        fi
+    done
+}
+
+echo "$target_dir"
+print_tree "$target_dir" ""
